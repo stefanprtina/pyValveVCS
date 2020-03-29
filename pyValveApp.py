@@ -2,8 +2,14 @@ import tkinter as tk
 import time
 import serial
 import serial.tools.list_ports
-import matplotlib as plt
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg, NavigationToolbar2Tk)
 
+import numpy as np
+
+ani = ""
 
 class pyValveApp(tk.Frame):
     def __init__(self, parent):
@@ -86,10 +92,57 @@ class pyValveApp(tk.Frame):
         self.buttonOpenSerial = tk.Button(text="Konektuj interfejs", command=lambda: serialCom.open(self, self.parent, self.serPortVar.get()))
         self.buttonOpenSerial.place(x=470, y=100)
 
-        self.buttonCheck = tk.Button(text="Provjeri interfejs", command=lambda: serialCom.isOpen(self, self.parent, self.serPortVar.get()))
-        self.buttonCheck.place(x=470, y=130)
 
-        self.frame.pack()
+        labelSerPort = tk.Label(self.parent, text="Izaberi mjerno područje transmitera(bar)", font=fontRegular)
+        labelSerPort.place(x=420, y=160)
+        self.sensRangeVar = tk.StringVar(self.parent)
+        self.sensRangeList = [10, 25, 100, 200, 300, 500]
+        self.sensRangeVar.set(self.sensRangeList[0])
+        sensRangeMenu = tk.OptionMenu(self.parent, self.sensRangeVar, *self.sensRangeList)
+        sensRangeMenu.place(x=470, y=190)
+
+        self.buttonDijagram = tk.Button(text="Otvori dijagram", command=lambda: dijagram(self))
+        self.buttonDijagram.place(x=470, y=240)
+
+
+        #Setup dijagrama
+
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(1, 1, 1)
+        xs = []
+        ys = []
+        plt.subplots_adjust(bottom=0.30)
+        plt.title('Dijagram ispitivanja ventila sigurnosti')
+        plt.ylabel('Pritisak (bar)')
+        plt.xlabel('Vrijeme (s)')
+
+        canvas = FigureCanvasTkAgg(fig, master=self.parent)  # A tk.DrawingArea.
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+
+        toolbar = NavigationToolbar2Tk(canvas, root)
+        toolbar.update()
+        canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+
+    def animate(self, parent):
+        self.parent = parent
+        if(xs):
+            xs.append(xs[-1]+0.05)
+        else:
+            xs[0] = 0.05
+        mappedVal = np.interp(SerialCom.getData(), [0.0, 1023.0], [0.0, float(self.sensRangeVar.get())])
+        ys.append(mappedVal)
+
+        # Limit x and y lists to 20 items
+        xs = xs[-20:]
+        ys = ys[-20:]
+
+        # Draw x and y lists
+        self.ax.clear()
+        self.ax.plot(xs, ys)
+
+    def animationStart(self):
+        ani = animation.FuncAnimation(self.fig, animate, fargs=(xs, ys), interval=50)
 
 class serialCom():
 
@@ -108,7 +161,8 @@ class serialCom():
         portsAvailable = serial.tools.list_ports.comports()
         return portsAvailable
 
-    def isOpen(self, parent, port):
+
+    def isOpen(self, parent, *port):
         if (self.ser.inWaiting() > 0):
             self.ser.reset_input_buffer()
             print(self.ser.readline().decode())
@@ -116,6 +170,12 @@ class serialCom():
             return True
         return False
 
+    def getData():
+
+        if (self.isOpen()):
+            data = self.ser.readline().decode()
+            return data
+        return False
 
 root = tk.Tk()
 root.geometry("800x600")
