@@ -6,14 +6,14 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
-
 import numpy as np
-
-ani = ""
 
 class pyValveApp(tk.Frame):
     def __init__(self, parent):
+
+        self.ani = " "
         self.parent = parent
+        serialInst = serialCom()
 
         fontBold = "helvetica 14 bold"
         fontRegular = "helvetica 13"
@@ -32,8 +32,8 @@ class pyValveApp(tk.Frame):
         #Serijski broj
         labelSerBrojVentila = tk.Label(self.parent, text="Serijski broj:", bd=1, font=fontRegular)
         labelSerBrojVentila.place(x=30, y=85)
-        entrySerBrojVentila = tk.Entry(self.parent)
-        entrySerBrojVentila.place(x=150, y=80)
+        self.entrySerBrojVentila = tk.Entry(self.parent)
+        self.entrySerBrojVentila.place(x=150, y=80)
 
         #Nominalni precnik
         labelPrecnikVentila = tk.Label(self.parent, text="Nominalni prečnik:", font=fontRegular)
@@ -57,8 +57,8 @@ class pyValveApp(tk.Frame):
         labelPritisakOtvaranja = tk.Label(self.parent, text="Pritisak otvaranja:", font=fontRegular)
         labelPritisakOtvaranja.place(x=30, y=215)
 
-        entryPritisakOtvaranja = tk.Entry(self.parent)
-        entryPritisakOtvaranja.place(x=150, y=210)
+        self.entryPritisakOtvaranja = tk.Entry(self.parent)
+        self.entryPritisakOtvaranja.place(x=150, y=210)
 
         #Ispitni medijum
         labelRadniMedijVentila = tk.Label(self.parent, text="Ispitni medijum:", font=fontRegular)
@@ -78,18 +78,18 @@ class pyValveApp(tk.Frame):
         labelPortSel.place(x=420, y=10)
 
         #Serijski port
-        labelSerPort = tk.Label(self.parent, text="Izaberi port", font=fontRegular)
-        labelSerPort.place(x=420, y=40)
+        self.labelSerPort = tk.Label(self.parent, text="Izaberi port", font=fontRegular)
+        self.labelSerPort.place(x=420, y=40)
 
         self.serPortVar = tk.StringVar(self.parent)
-        self.serPortList = [port.device for port in serialCom.getPorts()]
+        self.serPortList = [port.device for port in serialInst.getPorts()]
 
         if(self.serPortList):
             self.serPortVar.set(self.serPortList[0])
         self.selSerPort = tk.OptionMenu(self.parent, self.serPortVar, *self.serPortList)
         self.selSerPort.place(x=420, y=70)
 
-        self.buttonOpenSerial = tk.Button(text="Konektuj interfejs", command=lambda: serialCom.open(self, self.parent, self.serPortVar.get()))
+        self.buttonOpenSerial = tk.Button(text="Konektuj interfejs", command=lambda: serialInst.open(self, self.serPortVar.get()))
         self.buttonOpenSerial.place(x=470, y=100)
 
 
@@ -101,36 +101,37 @@ class pyValveApp(tk.Frame):
         sensRangeMenu = tk.OptionMenu(self.parent, self.sensRangeVar, *self.sensRangeList)
         sensRangeMenu.place(x=470, y=190)
 
-        self.buttonDijagram = tk.Button(text="Otvori dijagram", command=lambda: dijagram(self))
-        self.buttonDijagram.place(x=470, y=240)
-
-
         #Setup dijagrama
 
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(1, 1, 1)
-        xs = []
-        ys = []
+        self.ax.set_xlim(0, 10)
+        self.ax.set_ylim(0, int(self.sensRangeVar.get())*1.2)
+        self.xs = []
+        self.ys = []
         plt.subplots_adjust(bottom=0.30)
+        plt.grid()
         plt.title('Dijagram ispitivanja ventila sigurnosti')
         plt.ylabel('Pritisak (bar)')
         plt.xlabel('Vrijeme (s)')
 
-        canvas = FigureCanvasTkAgg(fig, master=self.parent)  # A tk.DrawingArea.
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.parent)  # A tk.DrawingArea.
+        self.canvas.draw()
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.parent)
+        self.toolbar.update()
+        self.canvas.get_tk_widget().place(x=20, y=280)
 
-        toolbar = NavigationToolbar2Tk(canvas, root)
-        toolbar.update()
-        canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+        self.buttonDijagram = tk.Button(text="Počni ispitivanje", command=self.animationStart)
+        self.buttonDijagram.place(x=470, y=240)
 
-    def animate(self, parent):
-        self.parent = parent
+    def animate(i, xs, ys):
+        print("Animate called")
         if(xs):
             xs.append(xs[-1]+0.05)
+            print(xs)
         else:
             xs[0] = 0.05
-        mappedVal = np.interp(SerialCom.getData(), [0.0, 1023.0], [0.0, float(self.sensRangeVar.get())])
+        mappedVal = np.interp(serialCom.getData(), [0.0, 1023.0], [0.0, float(self.sensRangeVar.get())])
         ys.append(mappedVal)
 
         # Limit x and y lists to 20 items
@@ -141,32 +142,57 @@ class pyValveApp(tk.Frame):
         self.ax.clear()
         self.ax.plot(xs, ys)
 
+        return
+
+
     def animationStart(self):
-        ani = animation.FuncAnimation(self.fig, animate, fargs=(xs, ys), interval=50)
+        print("Anim. start called")
+        if(self.validateInput()==True):
+            print("Input validated")
+        self.ani = animation.FuncAnimation(self.fig, self.animate, fargs=(self.xs, self.ys), interval=50)
+        return self.ani
+
+    def validateInput(self):
+        print("ValidateInput called!")
+        valid = True
+        if not(self.entrySerBrojVentila.get()):
+            valid = False
+            print("ser broj nije ok")
+        if not(float(self.entryPritisakOtvaranja.get())):
+            valid = False
+            print("pritisak otvaranjaok")
+        else:
+            if(float(self.entryPritisakOtvaranja.get())>float(self.sensRangeVar.get())):
+                print("Pritisak otvaranja veci od senzora")
+                valid = False
+        print(valid)
+        return valid
 
 class serialCom():
 
     ser = ""
 
-    def open(self, parent, port):
-        self.ser = serial.Serial(port, 9600, timeout=0.1, )
+    def open(self, buttonClass, port):
+        global ser
+        ser = serial.Serial(port, 9600, timeout=0.1, )
         time.sleep(2)
-        if(self.ser.inWaiting()>0):
-            print(self.ser.readline().decode())
-            self.buttonOpenSerial.config(fg="GREEN")
+        if(ser.inWaiting()>0):
+            print(ser.readline().decode())
+            buttonClass.buttonOpenSerial.config(fg="GREEN")
             return True
         return False
 
-    def getPorts():
+    def getPorts(self):
         portsAvailable = serial.tools.list_ports.comports()
         return portsAvailable
 
 
-    def isOpen(self, parent, *port):
-        if (self.ser.inWaiting() > 0):
-            self.ser.reset_input_buffer()
-            print(self.ser.readline().decode())
-            self.ser.reset_input_buffer()
+    def isOpen():
+        global ser
+        if (ser.inWaiting() > 0):
+            ser.reset_input_buffer()
+            ser.readline().decode()
+            ser.reset_input_buffer()
             return True
         return False
 
@@ -178,7 +204,7 @@ class serialCom():
         return False
 
 root = tk.Tk()
-root.geometry("800x600")
-
+root.geometry("800x800")
 app = pyValveApp(root)
+ani =
 root.mainloop()
