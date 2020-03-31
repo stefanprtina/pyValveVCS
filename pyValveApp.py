@@ -105,8 +105,8 @@ class pyValveApp(tk.Frame):
 
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(1, 1, 1)
-        self.ax.set_xlim(0, 10)
         self.ax.set_ylim(0, int(self.sensRangeVar.get())*1.2)
+        self.ax.set_xlim(0, 10)
         self.xs = []
         self.ys = []
         plt.subplots_adjust(bottom=0.30)
@@ -124,33 +124,40 @@ class pyValveApp(tk.Frame):
         self.buttonDijagram = tk.Button(text="Počni ispitivanje", command=self.animationStart)
         self.buttonDijagram.place(x=470, y=240)
 
-    def animate(i, xs, ys):
-        print("Animate called")
-        if(xs):
-            xs.append(xs[-1]+0.05)
-            print(xs)
+    def animate(self, i, xs, ys):
+        xs = self.xs
+        ys = self.ys
+
+        if(self.xs):
+            self.xs.append(xs[-1]+0.07)
+            xlim = self.ax.get_xlim()
+            print(max(xlim))
+            if(max(self.xs) > max(self.ax.get_xlim())):
+              self.ax.set_xlim(0, (max(self.ax.get_xlim())+3))
+
+
         else:
-            xs[0] = 0.05
+            self.xs = [0.07]
         mappedVal = np.interp(serialCom.getData(), [0.0, 1023.0], [0.0, float(self.sensRangeVar.get())])
-        ys.append(mappedVal)
+        self.ys.append(mappedVal)
 
         # Limit x and y lists to 20 items
-        xs = xs[-20:]
-        ys = ys[-20:]
+        self.xs = self.xs[-50:]
+        self.ys = self.ys[-50:]
 
         # Draw x and y lists
-        self.ax.clear()
-        self.ax.plot(xs, ys)
-
-        return
+        self.ax.plot(self.xs, self.ys, 'b-')
 
 
     def animationStart(self):
         print("Anim. start called")
         if(self.validateInput()==True):
             print("Input validated")
-        self.ani = animation.FuncAnimation(self.fig, self.animate, fargs=(self.xs, self.ys), interval=50)
-        return self.ani
+        print(self.entryPritisakOtvaranja.get())
+        plt.axhline(y=float(self.entryPritisakOtvaranja.get()), color="RED")
+        self.ani = animation.FuncAnimation(self.fig, self.animate, fargs=(self.xs, self.ys), interval=40)
+
+        self.canvas.draw()
 
     def validateInput(self):
         print("ValidateInput called!")
@@ -177,7 +184,6 @@ class serialCom():
         ser = serial.Serial(port, 9600, timeout=0.1, )
         time.sleep(2)
         if(ser.inWaiting()>0):
-            print(ser.readline().decode())
             buttonClass.buttonOpenSerial.config(fg="GREEN")
             return True
         return False
@@ -197,14 +203,13 @@ class serialCom():
         return False
 
     def getData():
-
-        if (self.isOpen()):
-            data = self.ser.readline().decode()
+        global ser
+        if (serialCom.isOpen()):
+            data = ser.readline().decode()
             return data
         return False
 
 root = tk.Tk()
 root.geometry("800x800")
 app = pyValveApp(root)
-ani =
 root.mainloop()

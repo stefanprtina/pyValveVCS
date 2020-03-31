@@ -23,15 +23,16 @@ class pyValveApp(tk.Frame):
         self.buttonDijagram = tk.Button(text="Počni ispitivanje", command=self.animationStart)
         self.buttonDijagram.pack()
         ani = self.animationStart()
+
     def animationStart(self):
         print("Anim. start called")
         global ani
+        ani = animation.FuncAnimation(self.fig, self._animate, interval=50)
+        plt.show()
+
+    def _animate(self, i):
         self.xs = []
         self.ys = []
-        ani = animation.FuncAnimation(self.fig, self.animate, fargs=(self.xs, self.ys), interval=50)
-        return ani
-
-    def animate(i, xs, ys):
         print("Animate called")
 
 
