@@ -1,14 +1,19 @@
 import tkinter as tk
 import time
+import sys
 from timeit import default_timer as timer
 import serial
 import serial.tools.list_ports
 import matplotlib.pyplot as plt
+import os
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.offsetbox import AnchoredText
 import numpy as np
+from shutil import copyfile
+from fpdf import FPDF
+
 
 class pyValveApp(tk.Frame):
     def __init__(self, parent):
@@ -18,6 +23,8 @@ class pyValveApp(tk.Frame):
         # Status bar
         self.statusBar = StatusBar(self.parent)
         self.statusBar.pack(side="bottom", fill="x")
+
+        self.glavniMeni = MenuClass(self.parent)
         self.ani = " "
 
 
@@ -34,8 +41,9 @@ class pyValveApp(tk.Frame):
         #Lokacija ventila
         labelLokacijaVentila = tk.Label(self.parent, text="Lokacija ventila:", bd=1, font=fontRegular)
         labelLokacijaVentila.place(x=30, y=55)
-        entryLokacijaVentila = tk.Entry(self.parent)
-        entryLokacijaVentila.place(x=150, y=50)
+
+        self.entryLokacijaVentila = tk.Entry(self.parent)
+        self.entryLokacijaVentila.place(x=150, y=50)
 
         #Serijski broj
         labelSerBrojVentila = tk.Label(self.parent, text="Serijski broj:", bd=1, font=fontRegular)
@@ -47,15 +55,15 @@ class pyValveApp(tk.Frame):
         labelPrecnikVentila = tk.Label(self.parent, text="Nominalni prečnik:", font=fontRegular)
         labelPrecnikVentila.place(x=30, y=115)
 
-        entryPrecnikVentila = tk.Entry(self.parent)
-        entryPrecnikVentila.place(x=150, y=110)
+        self.entryPrecnikVentila = tk.Entry(self.parent)
+        self.entryPrecnikVentila.place(x=150, y=110)
 
         #Radni medijum
         labelRadniMedijVentila = tk.Label(self.parent, text="Radni medijum:", font=fontRegular)
         labelRadniMedijVentila.place(x=30, y=145)
 
-        entryRadniMedijVentila = tk.Entry(self.parent)
-        entryRadniMedijVentila.place(x=150, y=140)
+        self.entryRadniMedijVentila = tk.Entry(self.parent)
+        self.entryRadniMedijVentila.place(x=150, y=140)
 
         labelIspitniPodaci = tk.Label(self.parent, text="Ispitni podaci", font=fontBold)
         labelIspitniPodaci.place(x=30, y=180)
@@ -72,12 +80,12 @@ class pyValveApp(tk.Frame):
         labelRadniMedijVentila = tk.Label(self.parent, text="Ispitni medijum:", font=fontRegular)
         labelRadniMedijVentila.place(x=30, y=245)
 
-        radniMedijVar = tk.StringVar(self.parent)
-        radniMedijList = ["N2", "Voda"]
-        radniMedijVar.set(radniMedijList[0])
+        self.radniMedijVar = tk.StringVar(self.parent)
+        self.radniMedijList = ["N2", "Voda"]
+        self.radniMedijVar.set(self.radniMedijList[0])
 
-        selRadniMedijVentila = tk.OptionMenu(self.parent, radniMedijVar, *radniMedijList)
-        selRadniMedijVentila.place(x=150, y=240)
+        self.selRadniMedijVentila = tk.OptionMenu(self.parent, self.radniMedijVar, *self.radniMedijList)
+        self.selRadniMedijVentila.place(x=150, y=240)
 
         #Port selection
 
@@ -107,6 +115,7 @@ class pyValveApp(tk.Frame):
         self.sensRangeList = [10, 25, 100, 200, 300, 500]
         self.sensRangeVar.set(self.sensRangeList[0])
         sensRangeMenu = tk.OptionMenu(self.parent, self.sensRangeVar, *self.sensRangeList)
+        self.sensRangeVar.trace('w', lambda *args: self.sensRangeUpdate())
         sensRangeMenu.place(x=470, y=190)
 
         #Setup dijagrama
@@ -132,6 +141,8 @@ class pyValveApp(tk.Frame):
         self.buttonDijagram = tk.Button(text="Počni ispitivanje", command=self.animationStart)
         self.buttonDijagram.place(x=470, y=240)
 
+        self.buttonDijagram = tk.Button(text="Završi ispitivanje", command=self.animationStop)
+        self.buttonDijagram.place(x=470, y=270)
 
     def animate(self, i, xs, ys):
 
@@ -148,7 +159,7 @@ class pyValveApp(tk.Frame):
             self.xs.append(xs[-1]+0.05)
             xlim = self.ax.get_xlim()
             if(max(self.xs) > max(self.ax.get_xlim())):
-              self.ax.set_xlim(0, (max(self.ax.get_xlim())+3))
+              self.ax.set_xlim(0, (max(self.ax.get_xlim())+2))
 
         else:
             self.xs = [0.05]
@@ -156,25 +167,45 @@ class pyValveApp(tk.Frame):
         self.ys.append(mappedVal)
 
         # Limit x and y lists to 20 items
-        self.xs = self.xs[-20:]
-        self.ys = self.ys[-20:]
+        #self.xs = self.xs[-20:]
+        #self.ys = self.ys[-20:]
 
 
-        text= "P = " + str(mappedVal) + "Pmax = "
-        paramBox = plt.AnchoredText("Test", loc=2)
-        self.ax.add_artist(paramBox)
+        text= "P = " + str(mappedVal)[:4] + ", Pmax = "+str(max(self.ys))[:4]
+        paramBox = AnchoredText(text, loc=2)
 
-        # Draw x and y lists
-        self.ax.plot(self.xs, self.ys, 'b-')
+        #Obrisi stari parambox
+        if(self.paramBoxBuff):
+            self.paramBoxBuff.remove()
+        #---------------------------
+
+        # Nacrtaj parambox
+        self.paramBoxBuff = self.ax.add_artist(paramBox)
+
+        # Nacrtaj liniju
+        self.ax.plot(self.xs[-2:], self.ys[-2:], 'b-')
         print((timer()-starttime)*1000)
+
+    def sensRangeUpdate(self):
+        self.ax.set_ylim(0, int(self.sensRangeVar.get()) + 5)
 
     def animationStart(self):
         print("Anim. start called")
         if(self.validateInput()==True):
             print("Input validated")
         plt.axhline(y=float(self.entryPritisakOtvaranja.get()), color="RED")
+        self.paramBoxBuff = []
         self.ani = animation.FuncAnimation(self.fig, self.animate, fargs=(self.xs, self.ys), interval=50)
         self.canvas.draw()
+
+    def animationStop(self):
+
+        ani = self.ani.event_source.stop()
+        data = [self.entrySerBrojVentila.get(), self.entryLokacijaVentila.get(), self.entryRadniMedijVentila.get(), self.entryPritisakOtvaranja.get(), self.radniMedijVar.get()]
+
+        report = ReportMaker.makeReport(self, data)
+
+
 
     def validateInput(self):
         print("ValidateInput called!")
@@ -236,6 +267,38 @@ class StatusBar(tk.Frame):
    def clear(self):
       self.label.config(text="")
       self.label.update_idletasks()
+
+class MenuClass(tk.Frame):
+   def __init__(self, parent):
+       self.parent = parent
+       menuBar = tk.Menu(self.parent)
+       self.parent.config(menu=menuBar)
+
+       file_menu = tk.Menu(menuBar, tearoff=0)
+
+       menuBar.add_cascade(label="Glavni meni", menu=file_menu)
+       file_menu.add_separator()
+       file_menu.add_command(label='Izlaz', command=self.parent.quit)
+
+class ReportMaker(tk.Frame):
+    def __init__(self, parent):
+        self.parent = parent
+
+    def makeReport(self, data):
+        self.data  = data
+        newReport = open("reports/" + str(time.time()) + "_" + str(data[0]), "w")
+        with open("templates/reportTemplate.html", "r+") as reportTemplate:
+            content = reportTemplate.read()
+            content = content.replace("{serbroj}", str(data[0]))
+            print(content)
+            newReport.write(content)
+
+        reportTemplate.close()
+        newReport.close()
+        return True
+
+
+
 
 root = tk.Tk()
 root.geometry("800x800")
