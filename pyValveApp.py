@@ -1,24 +1,22 @@
 import tkinter as tk
 import time
-import os
 from timeit import default_timer as timer
 import serial
 import serial.tools.list_ports
 import matplotlib.pyplot as plt
-import pdfkit
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.offsetbox import AnchoredText
 import numpy as np
-from shutil import copyfile
-from fpdf import FPDF
-
+from baza.dbModel import dbModel
 
 class pyValveApp(tk.Frame):
     def __init__(self, parent):
 
         self.parent = parent
+
+        #dbConn = dbModel(pyValveApp)
 
         # Status bar
         self.statusBar = StatusBar(self.parent)
@@ -34,7 +32,9 @@ class pyValveApp(tk.Frame):
         fontRegular = "helvetica 13"
 
         parent.title("pyValve v0.2")
-        self.frame = tk.Frame(self.parent)
+        self.frameMain = tk.Frame(self.parent)
+        self.frameDB = tk.Frame(self.parent, width=1000, height=800, background="#000",)
+        self.frameDB.pack()
         labelPodaci = tk.Label(self.parent, text="Osnovni podaci o ventilu",font=fontBold)
         labelPodaci.place(x=20, y=10)
 
@@ -143,6 +143,9 @@ class pyValveApp(tk.Frame):
 
         self.buttonDijagram = tk.Button(text="Završi ispitivanje", command=self.animationStop)
         self.buttonDijagram.place(x=470, y=270)
+
+        dbConn = dbManager.open(self, self.parent)
+
 
     def animate(self, i, xs, ys):
 
@@ -317,6 +320,17 @@ class ReportMaker(tk.Frame):
         reportTemplate.close()
         newReport.close()
         return True
+
+class dbManager(tk.Frame):
+    def __init__(self, parent):
+        dbConn = dbModel(pyValveApp)
+
+    def open(self, parent):
+        self.parent = parent
+
+        label = tk.Label(self.frameDB, text="LABEL DB FRAME")
+        label.pack()
+
 
 
 
