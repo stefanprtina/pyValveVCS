@@ -1,11 +1,11 @@
 import tkinter as tk
 import time
-import sys
+import os
 from timeit import default_timer as timer
 import serial
 import serial.tools.list_ports
 import matplotlib.pyplot as plt
-import os
+import pdfkit
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
@@ -193,15 +193,25 @@ class pyValveApp(tk.Frame):
         print("Anim. start called")
         if(self.validateInput()==True):
             print("Input validated")
-        plt.axhline(y=float(self.entryPritisakOtvaranja.get()), color="RED")
-        self.paramBoxBuff = []
-        self.ani = animation.FuncAnimation(self.fig, self.animate, fargs=(self.xs, self.ys), interval=50)
-        self.canvas.draw()
+            plt.axhline(y=float(self.entryPritisakOtvaranja.get()), color="RED")
+            self.paramBoxBuff = []
+            self.ani = animation.FuncAnimation(self.fig, self.animate, fargs=(self.xs, self.ys), interval=50)
+            self.canvas.draw()
+            return False
 
     def animationStop(self):
 
         ani = self.ani.event_source.stop()
-        data = [self.entrySerBrojVentila.get(), self.entryLokacijaVentila.get(), self.entryRadniMedijVentila.get(), self.entryPritisakOtvaranja.get(), self.radniMedijVar.get()]
+        data = [self.entrySerBrojVentila.get(), self.entryLokacijaVentila.get(), self.entryPrecnikVentila.get(), self.entryRadniMedijVentila.get(), self.entryPritisakOtvaranja.get(), self.radniMedijVar.get()]
+        imgName = "dijagrami/" + str(self.entrySerBrojVentila.get()) + "__"+str(time.time()) + ".png"
+        print(imgName)
+        try:
+            plt.savefig(imgName, dpi=200, bbox_inches="tight")
+            data.append(imgName)
+            print(data)
+            print("Dijagram sacuvan")
+        except:
+            print("ERROR - slika nije sacuvana")
 
         report = ReportMaker.makeReport(self, data)
 
@@ -212,13 +222,18 @@ class pyValveApp(tk.Frame):
         valid = True
         if not(self.entrySerBrojVentila.get()):
             valid = False
+            self.entrySerBrojVentila.config(bg="#ffbda1")
+            tk.messagebox.showerror("Nije unijet serijski broj ventila")
             print("ser broj nije ok")
         if not(float(self.entryPritisakOtvaranja.get())):
             valid = False
-            print("pritisak otvaranjaok")
+            self.entryPritisakOtvaranja.config(bg="#ffbda1")
+            tk.messagebox.showerror("Nije unijet pritisak otvaranja ventila")
+            print("pritisak otvaranja ok")
         else:
             if(float(self.entryPritisakOtvaranja.get())>float(self.sensRangeVar.get())):
-                print("Pritisak otvaranja veci od senzora")
+                tk.messagebox.showerror("Greška unosa", "Pritisak otvaranja veci od maksimalnog pritiska transmitera")
+                self.entryPritisakOtvaranja.config(bg="#ffbda1")
                 valid = False
         return valid
 
@@ -286,11 +301,17 @@ class ReportMaker(tk.Frame):
 
     def makeReport(self, data):
         self.data  = data
-        newReport = open("reports/" + str(time.time()) + "_" + str(data[0]), "w")
-        with open("templates/reportTemplate.html", "r+") as reportTemplate:
+        newReport = open("reports/" + str(time.time()) + "_" + str(data[0]) + ".html", "w")
+        with open("templates/reportTemplate.html", "r+", encoding="utf8") as reportTemplate:
             content = reportTemplate.read()
             content = content.replace("{serbroj}", str(data[0]))
-            print(content)
+            content = content.replace("{lokacija}", str(data[1]))
+            content = content.replace("{precnik}", str(data[2]))
+            content = content.replace("{medijum}", str(data[3]))
+            content = content.replace("{pritisak}", str(data[4]))
+            content = content.replace("{ispMedij}", str(data[5]))
+            content = content.replace("{slika}", str(data[6]))
+
             newReport.write(content)
 
         reportTemplate.close()
