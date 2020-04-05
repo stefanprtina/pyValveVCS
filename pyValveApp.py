@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 import time
 from timeit import default_timer as timer
 import serial
@@ -13,10 +14,10 @@ from baza.dbModel import dbModel
 
 class pyValveApp(tk.Frame):
     def __init__(self, parent):
-
         self.parent = parent
 
-        #dbConn = dbModel(pyValveApp)
+        dbConn = dbModel(self.parent)
+        self.dbConn = dbConn.connect()
 
         # Status bar
         self.statusBar = StatusBar(self.parent)
@@ -32,89 +33,89 @@ class pyValveApp(tk.Frame):
         fontRegular = "helvetica 13"
 
         parent.title("pyValve v0.2")
-        self.frameMain = tk.Frame(self.parent)
-        self.frameDB = tk.Frame(self.parent, width=1000, height=800, background="#000",)
-        self.frameDB.pack()
-        labelPodaci = tk.Label(self.parent, text="Osnovni podaci o ventilu",font=fontBold)
-        labelPodaci.place(x=20, y=10)
+        self.frameMain = tk.Frame(self.parent, width=1000, height=800, background="")
+
+        self.frameMain.tkraise()
+        self.frameMain.labelPodaci = tk.Label(self.frameMain, text="Osnovni podaci o ventilu",font=fontBold)
+        self.frameMain.labelPodaci.place(x=20, y=10)
 
         #Lokacija ventila
-        labelLokacijaVentila = tk.Label(self.parent, text="Lokacija ventila:", bd=1, font=fontRegular)
-        labelLokacijaVentila.place(x=30, y=55)
+        self.frameMain.labelLokacijaVentila = tk.Label(self.frameMain, text="Lokacija ventila:", bd=1, font=fontRegular)
+        self.frameMain.labelLokacijaVentila.place(x=30, y=55)
 
-        self.entryLokacijaVentila = tk.Entry(self.parent)
-        self.entryLokacijaVentila.place(x=150, y=50)
+        self.frameMain.entryLokacijaVentila = tk.Entry(self.frameMain)
+        self.frameMain.entryLokacijaVentila.place(x=150, y=50)
 
         #Serijski broj
-        labelSerBrojVentila = tk.Label(self.parent, text="Serijski broj:", bd=1, font=fontRegular)
-        labelSerBrojVentila.place(x=30, y=85)
-        self.entrySerBrojVentila = tk.Entry(self.parent)
-        self.entrySerBrojVentila.place(x=150, y=80)
+        self.frameMain.labelSerBrojVentila = tk.Label(self.frameMain, text="Serijski broj:", bd=1, font=fontRegular)
+        self.frameMain.labelSerBrojVentila.place(x=30, y=85)
+        self.frameMain.entrySerBrojVentila = tk.Entry(self.frameMain)
+        self.frameMain.entrySerBrojVentila.place(x=150, y=80)
 
         #Nominalni precnik
-        labelPrecnikVentila = tk.Label(self.parent, text="Nominalni prečnik:", font=fontRegular)
-        labelPrecnikVentila.place(x=30, y=115)
+        self.frameMain.labelPrecnikVentila = tk.Label(self.frameMain, text="Nominalni prečnik:", font=fontRegular)
+        self.frameMain.labelPrecnikVentila.place(x=30, y=115)
 
-        self.entryPrecnikVentila = tk.Entry(self.parent)
-        self.entryPrecnikVentila.place(x=150, y=110)
+        self.frameMain.entryPrecnikVentila = tk.Entry(self.frameMain)
+        self.frameMain.entryPrecnikVentila.place(x=150, y=110)
 
         #Radni medijum
-        labelRadniMedijVentila = tk.Label(self.parent, text="Radni medijum:", font=fontRegular)
-        labelRadniMedijVentila.place(x=30, y=145)
+        self.frameMain.labelRadniMedijVentila = tk.Label(self.frameMain, text="Radni medijum:", font=fontRegular)
+        self.frameMain.labelRadniMedijVentila.place(x=30, y=145)
 
-        self.entryRadniMedijVentila = tk.Entry(self.parent)
-        self.entryRadniMedijVentila.place(x=150, y=140)
+        self.frameMain.entryRadniMedijVentila = tk.Entry(self.frameMain)
+        self.frameMain.entryRadniMedijVentila.place(x=150, y=140)
 
-        labelIspitniPodaci = tk.Label(self.parent, text="Ispitni podaci", font=fontBold)
-        labelIspitniPodaci.place(x=30, y=180)
+        self.frameMain.labelIspitniPodaci = tk.Label(self.frameMain, text="Ispitni podaci", font=fontBold)
+        self.frameMain.labelIspitniPodaci.place(x=30, y=180)
 
         #Pritisak početka otvaranja
 
-        labelPritisakOtvaranja = tk.Label(self.parent, text="Pritisak otvaranja:", font=fontRegular)
-        labelPritisakOtvaranja.place(x=30, y=215)
+        self.frameMain.labelPritisakOtvaranja = tk.Label(self.frameMain, text="Pritisak otvaranja:", font=fontRegular)
+        self.frameMain.labelPritisakOtvaranja.place(x=30, y=215)
 
-        self.entryPritisakOtvaranja = tk.Entry(self.parent)
-        self.entryPritisakOtvaranja.place(x=150, y=210)
+        self.frameMain.entryPritisakOtvaranja = tk.Entry(self.frameMain)
+        self.frameMain.entryPritisakOtvaranja.place(x=150, y=210)
 
         #Ispitni medijum
-        labelRadniMedijVentila = tk.Label(self.parent, text="Ispitni medijum:", font=fontRegular)
-        labelRadniMedijVentila.place(x=30, y=245)
+        self.frameMain.labelRadniMedijVentila = tk.Label(self.frameMain, text="Ispitni medijum:", font=fontRegular)
+        self.frameMain.labelRadniMedijVentila.place(x=30, y=245)
 
         self.radniMedijVar = tk.StringVar(self.parent)
         self.radniMedijList = ["N2", "Voda"]
         self.radniMedijVar.set(self.radniMedijList[0])
 
-        self.selRadniMedijVentila = tk.OptionMenu(self.parent, self.radniMedijVar, *self.radniMedijList)
+        self.selRadniMedijVentila = tk.OptionMenu(self.frameMain, self.radniMedijVar, *self.radniMedijList)
         self.selRadniMedijVentila.place(x=150, y=240)
 
         #Port selection
 
         #label
-        labelPortSel = tk.Label(self.parent, text="Interfejs senzora", font=fontBold)
-        labelPortSel.place(x=420, y=10)
+        self.frameMain.labelPortSel = tk.Label(self.frameMain, text="Interfejs senzora", font=fontBold)
+        self.frameMain.labelPortSel.place(x=420, y=10)
 
         #Serijski port
-        self.labelSerPort = tk.Label(self.parent, text="Izaberi port", font=fontRegular)
-        self.labelSerPort.place(x=420, y=40)
+        self.frameMain.labelSerPort = tk.Label(self.frameMain, text="Izaberi port", font=fontRegular)
+        self.frameMain.labelSerPort.place(x=420, y=40)
 
         self.serPortVar = tk.StringVar(self.parent)
-        self.serPortList = [port.device for port in self.serialInst.getPorts()]
+        self.frameMain.serPortList = [port.device for port in self.serialInst.getPorts()]
 
-        if(self.serPortList):
-            self.serPortVar.set(self.serPortList[0])
-        self.selSerPort = tk.OptionMenu(self.parent, self.serPortVar, *self.serPortList)
-        self.selSerPort.place(x=420, y=70)
+        if(self.frameMain.serPortList):
+            self.serPortVar.set(self.frameMain.serPortList[0])
+        self.frameMain.selSerPort = tk.OptionMenu(self.frameMain, self.serPortVar, *self.frameMain.serPortList)
+        self.frameMain.selSerPort.place(x=420, y=70)
 
-        self.buttonOpenSerial = tk.Button(text="Konektuj interfejs", command=lambda: self.serialInst.open(self.buttonOpenSerial, self.serPortVar.get()))
-        self.buttonOpenSerial.place(x=470, y=100)
+        self.frameMain.buttonOpenSerial = tk.Button(self.frameMain, text="Konektuj interfejs", command=lambda: self.serialInst.open(self.frameMain.buttonOpenSerial, self.serPortVar.get()))
+        self.frameMain.buttonOpenSerial.place(x=470, y=100)
 
 
-        labelSerPort = tk.Label(self.parent, text="Izaberi mjerno područje transmitera(bar)", font=fontRegular)
-        labelSerPort.place(x=420, y=160)
+        self.frameMain.labelSerPort = tk.Label(self.frameMain, text="Izaberi mjerno područje transmitera(bar)", font=fontRegular)
+        self.frameMain.labelSerPort.place(x=420, y=160)
         self.sensRangeVar = tk.StringVar(self.parent)
         self.sensRangeList = [10, 25, 100, 200, 300, 500]
         self.sensRangeVar.set(self.sensRangeList[0])
-        sensRangeMenu = tk.OptionMenu(self.parent, self.sensRangeVar, *self.sensRangeList)
+        sensRangeMenu = tk.OptionMenu(self.frameMain, self.sensRangeVar, *self.sensRangeList)
         self.sensRangeVar.trace('w', lambda *args: self.sensRangeUpdate())
         sensRangeMenu.place(x=470, y=190)
 
@@ -132,19 +133,27 @@ class pyValveApp(tk.Frame):
         plt.ylabel('Pritisak (bar)')
         plt.xlabel('Vrijeme (s)')
 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.parent)  # A tk.DrawingArea.
-        self.canvas.draw()
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.parent)
+        self.frameMain.canvas = FigureCanvasTkAgg(self.fig, master=self.frameMain)  # A tk.DrawingArea.
+        self.frameMain.canvas.draw()
+        self.toolbar = NavigationToolbar2Tk(self.frameMain.canvas, self.parent)
         self.toolbar.update()
-        self.canvas.get_tk_widget().place(x=20, y=280)
+        self.frameMain.canvas.get_tk_widget().place(x=20, y=280)
 
-        self.buttonDijagram = tk.Button(text="Počni ispitivanje", command=self.animationStart)
-        self.buttonDijagram.place(x=470, y=240)
+        self.frameMain.buttonPocetak = tk.Button(self.frameMain, text="Počni ispitivanje", command=self.animationStart)
+        self.frameMain.buttonPocetak.place(x=470, y=240)
 
-        self.buttonDijagram = tk.Button(text="Završi ispitivanje", command=self.animationStop)
-        self.buttonDijagram.place(x=470, y=270)
+        self.frameMain.buttonKraj = tk.Button(self.frameMain, text="Završi ispitivanje", command=self.animationStop)
+        self.frameMain.buttonKraj.place(x=470, y=270)
 
-        dbConn = dbManager.open(self, self.parent)
+        self.frameMain.buttonBaza = tk.Button(self.frameMain, text="Baza podataka", command=lambda: dbManager.open(self, self.parent))
+        self.frameMain.buttonBaza.place(x=600, y=20)
+
+        self.frameMain.pack()
+        #self.frameMain.pack_forget()
+
+        self.frameDB = tk.Frame(self.parent, width=1000, height=800)
+
+
 
 
     def animate(self, i, xs, ys):
@@ -155,12 +164,10 @@ class pyValveApp(tk.Frame):
 
         if(ys):
             ymax = max(self.ys)
-            print(ymax)
 
         mappedVal = np.interp(self.serialInst.getData(), [0.0, 1023.0], [0.0, float(self.sensRangeVar.get())])
         if(self.xs):
             self.xs.append(xs[-1]+0.05)
-            xlim = self.ax.get_xlim()
             if(max(self.xs) > max(self.ax.get_xlim())):
               self.ax.set_xlim(0, (max(self.ax.get_xlim())+2))
 
@@ -170,8 +177,8 @@ class pyValveApp(tk.Frame):
         self.ys.append(mappedVal)
 
         # Limit x and y lists to 20 items
-        #self.xs = self.xs[-20:]
-        #self.ys = self.ys[-20:]
+        self.xs = self.xs[-200:]
+        self.ys = self.ys[-200:]
 
 
         text= "P = " + str(mappedVal)[:4] + ", Pmax = "+str(max(self.ys))[:4]
@@ -187,6 +194,7 @@ class pyValveApp(tk.Frame):
 
         # Nacrtaj liniju
         self.ax.plot(self.xs[-2:], self.ys[-2:], 'b-')
+
         print((timer()-starttime)*1000)
 
     def sensRangeUpdate(self):
@@ -196,17 +204,17 @@ class pyValveApp(tk.Frame):
         print("Anim. start called")
         if(self.validateInput()==True):
             print("Input validated")
-            plt.axhline(y=float(self.entryPritisakOtvaranja.get()), color="RED")
+            plt.axhline(y=float(self.frameMain.entryPritisakOtvaranja.get()), color="RED")
             self.paramBoxBuff = []
             self.ani = animation.FuncAnimation(self.fig, self.animate, fargs=(self.xs, self.ys), interval=50)
-            self.canvas.draw()
+            self.frameMain.canvas.draw()
             return False
 
     def animationStop(self):
 
         ani = self.ani.event_source.stop()
-        data = [self.entrySerBrojVentila.get(), self.entryLokacijaVentila.get(), self.entryPrecnikVentila.get(), self.entryRadniMedijVentila.get(), self.entryPritisakOtvaranja.get(), self.radniMedijVar.get()]
-        imgName = "dijagrami/" + str(self.entrySerBrojVentila.get()) + "__"+str(time.time()) + ".png"
+        data = [self.frameMain.entrySerBrojVentila.get(), self.frameMain.entryLokacijaVentila.get(), self.frameMain.entryPrecnikVentila.get(), self.frameMain.entryRadniMedijVentila.get(), self.frameMain.entryPritisakOtvaranja.get(), self.radniMedijVar.get()]
+        imgName = "dijagrami/" + str(self.frameMain.entrySerBrojVentila.get()) + "__"+str(time.time()) + ".png"
         print(imgName)
         try:
             plt.savefig(imgName, dpi=200, bbox_inches="tight")
@@ -223,18 +231,18 @@ class pyValveApp(tk.Frame):
     def validateInput(self):
         print("ValidateInput called!")
         valid = True
-        if not(self.entrySerBrojVentila.get()):
+        if not(self.frameMain.entrySerBrojVentila.get()):
             valid = False
-            self.entrySerBrojVentila.config(bg="#ffbda1")
+            self.frameMain.entrySerBrojVentila.config(bg="#ffbda1")
             tk.messagebox.showerror("Nije unijet serijski broj ventila")
             print("ser broj nije ok")
-        if not(float(self.entryPritisakOtvaranja.get())):
+        if not(float(self.frameMain.entryPritisakOtvaranja.get())):
             valid = False
-            self.entryPritisakOtvaranja.config(bg="#ffbda1")
+            self.frameMain.entryPritisakOtvaranja.config(bg="#ffbda1")
             tk.messagebox.showerror("Nije unijet pritisak otvaranja ventila")
             print("pritisak otvaranja ok")
         else:
-            if(float(self.entryPritisakOtvaranja.get())>float(self.sensRangeVar.get())):
+            if(float(self.frameMain.entryPritisakOtvaranja.get())>float(self.sensRangeVar.get())):
                 tk.messagebox.showerror("Greška unosa", "Pritisak otvaranja veci od maksimalnog pritiska transmitera")
                 self.entryPritisakOtvaranja.config(bg="#ffbda1")
                 valid = False
@@ -269,6 +277,7 @@ class serialCom():
 
             starttime = timer()
             data = self.ser.read(self.ser.inWaiting()).decode()
+            print(data)
             if '\r\n' in data:
                 data = data.split('\r\n')
             return data[-2]
@@ -323,13 +332,74 @@ class ReportMaker(tk.Frame):
 
 class dbManager(tk.Frame):
     def __init__(self, parent):
-        dbConn = dbModel(pyValveApp)
+        self.parent = parent
 
     def open(self, parent):
         self.parent = parent
 
-        label = tk.Label(self.frameDB, text="LABEL DB FRAME")
-        label.pack()
+        label = tk.Label(self.frameDB, text="Baza podataka firmi i ventila", font="helvetica 14 bold")
+        label.place(x=300, y=5)
+        self.frameDB.treeFirme = ttk.Treeview(self.frameDB)
+        self.frameDB.treeFirme["columns"] = ("naziv")
+        self.frameDB.treeFirme.column("#0", width=500, minwidth=270, stretch=tk.NO)
+
+        self.frameDB.treeFirme.heading("#0", text="Naziv firme", anchor=tk.W)
+        self.frameDB.treeFirme.place(x=30, y=40)
+
+        self.frameDB.labelFrame = tk.LabelFrame(self.frameDB, text="Unos firme", font="helvetica 14 bold")
+        self.frameDB.labelFrame.grid(row=3, column=2, padx=5, pady=5)
+        self.frameDB.labelFrame.place(x=30, y=260)
+
+        label= tk.Label(self.frameDB.labelFrame, text="Naziv:", font="helvetica 12")
+        label.grid(row=0, column=0)
+        self.frameDB.entryNazivFirme  = tk.Entry(self.frameDB.labelFrame)
+        self.frameDB.entryNazivFirme.grid(column=1, row=0)
+
+        label= tk.Label(self.frameDB.labelFrame, text="Podaci firme:", font="helvetica 12")
+        label.grid(row=1, column=0)
+        self.frameDB.entryPodaciFirme = tk.Text(self.frameDB.labelFrame, height=5, width=40, borderwidth=1, relief="solid")
+        self.frameDB.entryPodaciFirme.grid(column=1, row=1)
+
+        self.frameDB.buttonDodajFirmu = tk.Button(self.frameDB.labelFrame, text="Unesi firmu", command=lambda: dbManager.dodajfirmu(self))
+        self.frameDB.buttonDodajFirmu.grid(column=1, row=2, sticky="se")
+
+
+#podaci - baza
+
+        query = self.dbConn.cursor()
+
+        query.execute("SELECT rowid, naziv, podaci FROM firme ORDER BY rowid ASC")
+
+        self.dbConn.commit()
+        firme = query.fetchall()
+        for firma in firme:
+            print (firma[0])
+            #nadji ventile u firmi
+            sql = 'SELECT * FROM ventili WHERE firma =' + str(firma[0])
+            query.execute(sql)
+            ventili = query.fetchall()
+            #-------------------------------------
+            firmaTree = self.frameDB.treeFirme.insert("", "1", text=str(firma[1]), values=(str(firma[0])))
+            for ventil in ventili:
+                self.frameDB.treeFirme.insert(firmaTree, "end", text=(str(ventil[1]) + "//" + str(ventil[2])))
+
+        self.frameMain.pack_forget()
+        self.frameDB.pack()
+
+    def dodajfirmu(self):
+        firmaNaziv = self.frameDB.entryNazivFirme.get()
+        firmaPodaci = self.frameDB.entryPodaciFirme.get("1.0", "end")
+        sql = "INSERT INTO firme (naziv, podaci) VALUES('"+ firmaNaziv +"', '" + firmaPodaci+ "')"
+        print(sql)
+        dodato = self.dbConn.execute(sql)
+        self.dbConn.commit()
+        if(dodato):
+            self.frameDB.treeFirme.insert("", "1", text=firmaNaziv)
+            return True
+
+
+
+
 
 
 
